@@ -12,7 +12,7 @@ func Cmd(cmd string) Action {
 	return &CmdAction{cmd: cmd}
 }
 
-func (runner *CmdAction) Run() ([]Message, error) {
+func (runner *CmdAction) Run(_ *Context) ([]Message, error) {
 	cmd := exec.Command("sh", "-c", runner.cmd)
 
 	_, err := cmd.Output()

@@ -9,7 +9,7 @@ type Runner struct {
 }
 
 func NewRunner(context *Context) *Runner {
-	return &Runner{}
+	return &Runner{context: context}
 }
 
 func (runner *Runner) RunAll(actions map[string]Action) *ActionResultIter {
@@ -17,12 +17,13 @@ func (runner *Runner) RunAll(actions map[string]Action) *ActionResultIter {
 
 	for name := range actions {
 		go func(actionName string) {
-			messages, err := actions[actionName].Run()
+			messages, err := actions[actionName].Run(runner.context)
 			if errors.Is(err, ErrSkipped) {
 				results <- &ActionResult{
 					Skipped:   true,
 					ActionRef: actionName,
 				}
+
 				return
 			}
 

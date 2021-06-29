@@ -36,5 +36,11 @@ func (iter *ActionResultIter) Next() (*ActionResult, bool) {
 }
 
 type Action interface {
-	Run() ([]Message, error)
+	Run(ctx *Context) ([]Message, error)
+}
+
+type ActionFunc func(*Context) ([]Message, error)
+
+func (fn ActionFunc) Run(ctx *Context) ([]Message, error) {
+	return fn(ctx)
 }

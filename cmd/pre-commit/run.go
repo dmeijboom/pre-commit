@@ -50,7 +50,19 @@ func runCmd(c *cli.Context) error {
 	actions := map[string]runner.Action{}
 
 	for _, check := range cfg.Checks {
-		actions[check.Name] = runner.Cmd(check.Cmd)
+		action := runner.Cmd(check.Cmd)
+
+		if len(check.When) > 0 {
+			patterns := make([]string, len(check.When))
+
+			for i, is := range check.When {
+				patterns[i] = is.Glob
+			}
+
+			action = runner.MatchGlob(action, patterns)
+		}
+
+		actions[check.Name] = action
 	}
 
 	exitOk := true
