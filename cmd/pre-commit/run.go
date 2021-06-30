@@ -52,7 +52,7 @@ func runCmd(c *cli.Context) error {
 	for _, check := range cfg.Checks {
 		action := runner.Cmd(check.Cmd)
 
-		if len(check.When) > 0 {
+		if !c.Bool("all") && len(check.When) > 0 {
 			patterns := make([]string, len(check.When))
 
 			for i, is := range check.When {

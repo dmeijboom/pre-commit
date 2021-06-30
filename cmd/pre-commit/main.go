@@ -21,6 +21,12 @@ func main() {
 				Name:   "run",
 				Usage:  "Run the checks",
 				Action: runCmd,
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:  "all",
+						Usage: "Run all checks (ignore when conditions)",
+					},
+				},
 			},
 			{
 				Name:  "install",
