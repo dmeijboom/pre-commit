@@ -13,6 +13,41 @@ import (
 	"github.com/dmeijboom/pre-commit/pkg/runner"
 )
 
+func parseActions(checks []config.Check, ignoreCond bool) map[string]runner.Action {
+	actions := map[string]runner.Action{}
+
+	for _, check := range checks {
+		action := runner.Cmd(check.Cmd)
+
+		if !ignoreCond && len(check.When) > 0 {
+			patterns := []string{}
+			dirs := []string{}
+
+			for _, is := range check.When {
+				if is.Glob != "" {
+					patterns = append(patterns, is.Glob)
+				}
+
+				if is.Dir != "" {
+					dirs = append(dirs, is.Dir)
+				}
+			}
+
+			if len(patterns) > 0 {
+				action = runner.MatchGlob(action, patterns)
+			}
+
+			if len(dirs) > 0 {
+				action = runner.MatchDir(action, dirs)
+			}
+		}
+
+		actions[check.Name] = action
+	}
+
+	return actions
+}
+
 func runCmd(c *cli.Context) error {
 	cfg, err := config.Load("pre-commit.json")
 	if err != nil {
@@ -47,25 +82,9 @@ func runCmd(c *cli.Context) error {
 	}
 
 	r := runner.NewRunner(ctx)
-	actions := map[string]runner.Action{}
-
-	for _, check := range cfg.Checks {
-		action := runner.Cmd(check.Cmd)
-
-		if !c.Bool("all") && len(check.When) > 0 {
-			patterns := make([]string, len(check.When))
-
-			for i, is := range check.When {
-				patterns[i] = is.Glob
-			}
-
-			action = runner.MatchGlob(action, patterns)
-		}
-
-		actions[check.Name] = action
-	}
 
 	exitOk := true
+	actions := parseActions(cfg.Checks, c.Bool("all"))
 	iter := r.RunAll(actions)
 
 	var (
