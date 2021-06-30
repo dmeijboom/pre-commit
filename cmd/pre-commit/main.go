@@ -22,6 +22,17 @@ func main() {
 				Usage:  "Run the checks",
 				Action: runCmd,
 			},
+			{
+				Name:  "install",
+				Usage: "Install git-hook and example config",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:  "force",
+						Usage: "Overwrite files if already exists",
+					},
+				},
+				Action: installCmd,
+			},
 		},
 	}
 
