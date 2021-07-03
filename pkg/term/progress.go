@@ -2,6 +2,7 @@ package term
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ttacon/chalk"
 )
@@ -16,6 +17,7 @@ const (
 type ProgressBar struct {
 	max    int
 	cur    int
+	prev   int
 	dirty  bool
 	status string
 }
@@ -43,19 +45,19 @@ func (bar *ProgressBar) Status(status string) *ProgressBar {
 }
 
 func (bar *ProgressBar) Tick() *ProgressBar {
+	bar.prev = bar.cur
 	bar.cur++
 
 	return bar
 }
 
-func (bar *ProgressBar) Render() {
+func (bar *ProgressBar) render(barLen int) {
 	bar.Clear()
 
 	body := ""
-	ratio := float32(bar.cur) / float32(bar.max)
 
 	for i := 0; i < width; i++ {
-		if i < int(width*ratio) {
+		if i < barLen {
 			body += divider
 			continue
 		}
@@ -83,6 +85,23 @@ func (bar *ProgressBar) Render() {
 	)
 
 	bar.dirty = true
+}
+
+func (bar *ProgressBar) Render() {
+	prev := int(width * float64(bar.prev) / float64(bar.max))
+	cur := int(width * float64(bar.cur) / float64(bar.max))
+
+	if prev == cur {
+		bar.render(cur)
+
+		return
+	}
+
+	for i := prev; i < cur; i++ {
+		bar.render(i)
+
+		time.Sleep(10 * time.Millisecond)
+	}
 }
 
 func (bar *ProgressBar) Done() {
