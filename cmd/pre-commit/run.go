@@ -2,15 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/superhawk610/terminal"
 	"os"
 
-	"github.com/superhawk610/bar"
 	"github.com/ttacon/chalk"
 	"github.com/urfave/cli/v2"
 
 	"github.com/dmeijboom/pre-commit/pkg/config"
 	"github.com/dmeijboom/pre-commit/pkg/runner"
+	"github.com/dmeijboom/pre-commit/pkg/term"
 )
 
 func parseActions(checks []config.Check, ignoreCond bool) map[string]runner.Action {
@@ -54,22 +53,8 @@ func runCmd(c *cli.Context) error {
 		return err
 	}
 
-	term := terminal.New()
-
-	progress := bar.NewWithOpts(
-		bar.WithDimensions(len(cfg.Checks), 25),
-		bar.WithFormat(
-			fmt.Sprintf(
-				" %s:state%s :percent :bar",
-				chalk.Blue,
-				chalk.Reset,
-			),
-		),
-	)
-
-	progress.Update(0, bar.Context{
-		bar.Ctx("state", "init.."),
-	})
+	progress := term.NewProgressBar(len(cfg.Checks))
+	progress.Status("running..").Render()
 
 	workdir, err := os.Getwd()
 	if err != nil {
@@ -95,12 +80,11 @@ func runCmd(c *cli.Context) error {
 	for !done {
 		result, done = iter.Next()
 
-		// clear the entire line
-		term.ClearLine()
+		progress.Clear()
 
 		if result.Skipped {
-			progress.Interruptf(
-				"%s✓%s %s %s[skipped]%s",
+			fmt.Printf(
+				"%s✓%s %s %s[skipped]%s\n",
 				chalk.Green,
 				chalk.Reset,
 				result.ActionRef,
@@ -109,25 +93,39 @@ func runCmd(c *cli.Context) error {
 			)
 		} else {
 			if result.Ok() {
-				progress.Interruptf("%s✓ %s%s", chalk.Green, result.ActionRef, chalk.Reset)
+				fmt.Printf("%s✓ %s%s\n", chalk.Green, result.ActionRef, chalk.Reset)
 			} else {
 				exitOk = false
-				progress.Interruptf("%s✗ %s%s", chalk.Red, result.ActionRef, chalk.Reset)
+
+				fmt.Printf("%s✗ %s%s\n", chalk.Red, result.ActionRef, chalk.Reset)
+
+				for _, message := range result.Messages {
+					var color chalk.Color
+
+					switch message.Type {
+					case runner.NoticeMessage:
+						color = chalk.Red
+					case runner.WarningMessage:
+						color = chalk.Yellow
+					case runner.ErrorMessage:
+						color = chalk.Red
+					default:
+						color = chalk.Black
+					}
+
+					style := chalk.Dim.NewStyle()
+					style.Foreground(color)
+
+					fmt.Printf("%s%s%s\n", style.String(), message.Body, chalk.Reset)
+				}
 			}
 		}
 
-		progress.TickAndUpdate(bar.Context{
-			bar.Ctx("state", "running.."),
-		})
+		progress.Tick().Render()
 	}
 
 	progress.Done()
 
-	// clear the progress bar
-	fmt.Print("\033[F")
-	term.ClearLine()
-
-	fmt.Println("")
 	fmt.Printf("%d checks finished\n", len(cfg.Checks))
 
 	if !exitOk {

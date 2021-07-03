@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"fmt"
 	"os/exec"
 )
 
@@ -13,12 +14,34 @@ func Cmd(cmd string) Action {
 }
 
 func (runner *CmdAction) Run(_ *Context) ([]Message, error) {
-	cmd := exec.Command("sh", "-c", runner.cmd)
+	var messages []Message
 
-	_, err := cmd.Output()
+	cmd := exec.Command("sh", "-c", runner.cmd)
+	output, err := cmd.Output()
 	if err != nil {
-		return nil, err
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			if len(exitErr.Stderr) > 0 {
+				messages = append(messages, Message{
+					Type: WarningMessage,
+					Body: string(exitErr.Stderr),
+				})
+			}
+
+			messages = append(messages, Message{
+				Type: ErrorMessage,
+				Body: fmt.Sprintf("command exited with status: %d", exitErr.ExitCode()),
+			})
+		}
+
+		return messages, err
 	}
 
-	return []Message{}, nil
+	if len(output) > 0 {
+		messages = append(messages, Message{
+			Type: NoticeMessage,
+			Body: string(output),
+		})
+	}
+
+	return messages, nil
 }
