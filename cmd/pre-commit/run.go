@@ -104,19 +104,16 @@ func runCmd(c *cli.Context) error {
 
 					switch message.Type {
 					case runner.NoticeMessage:
-						color = chalk.Red
+						color = chalk.White
 					case runner.WarningMessage:
 						color = chalk.Yellow
 					case runner.ErrorMessage:
-						color = chalk.Red
+						color = chalk.Yellow
 					default:
 						color = chalk.Black
 					}
 
-					style := chalk.Dim.NewStyle()
-					style.Foreground(color)
-
-					fmt.Printf("%s%s%s\n", style.String(), message.Body, chalk.Reset)
+					fmt.Printf("%s%s%s\n", color, message.Body, chalk.Reset)
 				}
 			}
 		}
