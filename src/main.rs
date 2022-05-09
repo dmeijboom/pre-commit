@@ -1,6 +1,12 @@
+use std::fs::Permissions;
+use std::os::unix::fs::PermissionsExt;
 use std::process::exit;
+
 use clap::Parser;
+use colored::Colorize;
+use git2::Repository;
 use indicatif::{ProgressBar, ProgressStyle};
+use tokio::fs;
 
 mod config;
 mod process;
@@ -57,7 +63,24 @@ async fn main() {
             }
         }
         Cmd::Install => {
-            panic!("not implemented");
+            let repo = Repository::open(".")
+                .expect("failed to open repository");
+            let filename = repo.path().join("hooks").join("pre-commit");
+
+            if filename.exists() {
+                eprintln!("pre-commit hook already exists");
+                exit(1);
+            }
+
+            fs::write(&filename, "#!/bin/sh\npre-commit run")
+                .await
+                .expect("failed to write pre-commit hook");
+
+            fs::set_permissions(filename, Permissions::from_mode(0o755))
+                .await
+                .expect("failed to set permissions");
+
+            println!("{}", "✓ pre-commit hook installed".green());
         }
     }
 }
