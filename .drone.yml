@@ -1,0 +1,21 @@
+kind: pipeline
+type: kubernetes
+name: default
+steps:
+  - name: build
+    image: rust:1-slim-buster
+    commands:
+      - cargo build --release
+      - mv target/release/pre-commit pre-commit
+  - name: upload
+    image: plugins/s3
+    settings:
+      path_style: true
+      bucket: build-artifacts
+      source: pre-commit
+      endpoint: https://s3.1.excol.cloud
+      target: dmeijboom/pre-commit/${DRONE_COMMIT_SHA:0:7}/amd64
+      access_key:
+        from_secret: build_artifacts_access_key
+      secret_key:
+        from_secret: build_artifacts_secret_key
