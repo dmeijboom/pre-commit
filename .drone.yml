@@ -2,19 +2,32 @@ kind: pipeline
 type: kubernetes
 name: default
 steps:
-  - name: build
+  - name: build Linux
     image: rust:1-slim-buster
     commands:
       - cargo build --release
-      - mv target/release/pre-commit pre-commit
+      - mkdir -p ${DRONE_COMMIT_SHA:0:7}/x86_64
+      - mv target/release/pre-commit ${DRONE_COMMIT_SHA:0:7}/x86_64/pre-commit
+  - name: build MacOs
+    image: joseluisq/rust-linux-darwin-builder:1.60.0
+    commands:
+      - >
+      - rustup target add aarch64-apple-darwin
+      - mkdir -p ${DRONE_COMMIT_SHA:0:7}/aarch64
+      - >
+        echo [target.aarch64-apple-darwin] >> ~/.cargo/config && \
+          echo 'linker = "arm64e-apple-darwin21.1-clang"' >> ~/.cargo/config
+          echo 'ar = "arm64e-apple-darwin21.1-ar"' >> ~/.cargo/config
+      - CC=oa64-clang CXX=oa64-clang++ LIBZ_SYS_STATIC=1 cargo build --release --target=aarch64-apple-darwin
+      - mv target/aarch64-apple-darwin/release/pre-commit ${DRONE_COMMIT_SHA:0:7}/aarch64/pre-commit
   - name: upload
     image: plugins/s3
     settings:
       path_style: true
       bucket: build-artifacts
-      source: pre-commit
+      source: ${DRONE_COMMIT_SHA:0:7}/**/*
       endpoint: https://s3.1.excol.cloud
-      target: dmeijboom/pre-commit/${DRONE_COMMIT_SHA:0:7}/x86_64
+      target: dmeijboom/pre-commit/
       access_key:
         from_secret: build_artifacts_access_key
       secret_key:
