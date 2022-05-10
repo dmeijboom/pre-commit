@@ -14,7 +14,7 @@ steps:
       bucket: build-artifacts
       source: pre-commit
       endpoint: https://s3.1.excol.cloud
-      target: dmeijboom/pre-commit/${DRONE_COMMIT_SHA:0:7}/amd64
+      target: dmeijboom/pre-commit/${DRONE_COMMIT_SHA:0:7}/x86_64
       access_key:
         from_secret: build_artifacts_access_key
       secret_key:
